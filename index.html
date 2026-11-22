@@ -1,0 +1,762 @@
+
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>FIVE NIGHTS AT CODEMASTER'S PIZZA</title>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#000;color:white;font-family:Arial;overflow:hidden}
+#game{width:100vw;height:100dvh;position:relative;overflow:hidden}
+#three{position:absolute;inset:0;width:100%;height:100%}
+#top{position:absolute;top:12px;left:14px;right:14px;display:flex;justify-content:space-between;z-index:5;font-weight:bold;text-shadow:0 2px 5px black}
+#power{position:absolute;bottom:95px;left:12px;z-index:5;font-size:13px;text-shadow:0 2px 4px black}
+#powerBar{height:9px;width:130px;background:#333;margin-top:5px}
+#powerFill{height:100%;width:100%;background:#4c4}
+#usage{margin-top:5px;color:#ddd}
+#controls{position:absolute;bottom:12px;left:0;right:0;z-index:8;display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
+button{background:#171717;color:white;border:2px solid #777;padding:11px 13px;font-weight:bold}
+button:active{background:#555}
+#soundButton{position:absolute;top:48px;right:12px;z-index:8;padding:7px;font-size:11px}
+.door{position:absolute;top:14%;height:68%;width:17%;background:linear-gradient(90deg,#080808,#555,#171717);border:5px solid #777;z-index:3;display:none}
+#leftDoor{left:0}#rightDoor{right:0}
+.light{position:absolute;top:14%;height:68%;width:23%;background:rgba(255,245,180,.23);z-index:2;display:none}
+#cameraPanel{position:absolute;inset:4% 3% 9%;z-index:10;background:#080808;border:4px solid #777;display:none;box-shadow:0 0 30px #000}
+#camScene{position:absolute;inset:0 0 65px;overflow:hidden}
+#camRoom{position:absolute;inset:0;overflow:hidden;background:linear-gradient(#171717,#080808 75%)}
+#camRoom:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 65px,rgba(255,255,255,.035) 66px 68px)}
+#camRoom:after{content:"";position:absolute;left:0;right:0;bottom:0;height:30%;background:linear-gradient(transparent,#050505)}
+.cam-wall{position:absolute;top:0;left:0;width:100%;height:75%;background:linear-gradient(90deg,#080808,#292929 50%,#080808);clip-path:polygon(0 0,100% 0,85% 100%,15% 100%)}
+.cam-floor{position:absolute;bottom:0;left:0;width:100%;height:35%;background:repeating-linear-gradient(90deg,#171717 0 55px,#222 56px 58px);clip-path:polygon(15% 0,85% 0,100% 100%,0 100%)}
+.cam-ceiling{position:absolute;top:0;left:15%;width:70%;height:15%;background:#303030;clip-path:polygon(0 0,100% 0,85% 100%,15% 100%)}
+.cam-light{position:absolute;top:-20%;left:30%;width:40%;height:75%;background:radial-gradient(ellipse,rgba(220,220,180,.22),transparent 70%)}
+.cam-table{position:absolute;bottom:20%;left:30%;width:40%;height:13%;background:linear-gradient(#555,#171717);border:3px solid #333;transform:perspective(100px) rotateX(-5deg)}
+.cam-table:after{content:"";position:absolute;top:100%;left:10%;width:80%;height:55px;background:linear-gradient(90deg,#171717,#444,#171717)}
+.cam-box{position:absolute;bottom:23%;width:19%;height:24%;background:linear-gradient(90deg,#111,#494949,#171717);border:3px solid #555}
+.cam-box.left{left:8%}.cam-box.right{right:8%}
+.cam-doorway{position:absolute;top:8%;bottom:15%;left:35%;width:30%;border:8px solid #292929;background:linear-gradient(#030303,#151515);box-shadow:0 0 20px #000 inset}
+.cam-poster{position:absolute;top:20%;left:8%;width:18%;height:22%;background:#242424;border:4px solid #555;transform:rotate(-3deg)}
+.cam-poster:after{content:"CODEMASTER'S";font-size:clamp(7px,1.5vw,13px);display:block;text-align:center;margin-top:25%;color:#aaa}
+.cam-shelf{position:absolute;top:30%;right:8%;width:22%;height:8%;background:#555;border-bottom:5px solid #222}
+.cam-shelf:after{content:"";position:absolute;bottom:100%;left:10%;width:25%;height:30px;background:#333;border:2px solid #666}
+.cam-pipes{position:absolute;top:0;left:10%;height:80%;width:7%;border-left:8px solid #444;border-right:4px solid #222}
+.cam-room-name{position:absolute;bottom:7%;left:0;right:0;text-align:center;color:#aaa;font-size:clamp(10px,2vw,17px);letter-spacing:5px;opacity:.5}
+#camLabel{position:absolute;top:10px;left:12px;z-index:4;font-size:clamp(13px,3vw,19px);font-weight:bold;text-shadow:0 2px 5px black;color:#eee}
+#camCharacter{position:absolute;z-index:3;left:50%;bottom:12%;transform:translateX(-50%);width:clamp(90px,23vw,190px);height:clamp(150px,38vw,290px);display:none;filter:drop-shadow(0 0 15px #f00)}
+#camCharacter .head{position:absolute;top:4%;left:23%;width:54%;height:30%;background:linear-gradient(90deg,#242424,#777,#292929);border:5px solid #111;border-radius:35% 35% 20% 20%}
+#camCharacter .eyes{position:absolute;top:35%;left:12%;width:76%;display:flex;justify-content:space-around}
+#camCharacter .eyes i{display:block;width:19px;height:19px;border-radius:50%;background:#f00;box-shadow:0 0 18px red}
+#camCharacter .body{position:absolute;top:35%;left:17%;width:66%;height:48%;background:linear-gradient(90deg,#171717,#555,#171717);border:5px solid #111;border-radius:18% 18% 5% 5%}
+#camCharacter .arm{position:absolute;top:39%;width:22%;height:42%;background:linear-gradient(90deg,#111,#555,#111);border:3px solid #111}
+#camCharacter .arm.left{left:0;transform:rotate(12deg)}
+#camCharacter .arm.right{right:0;transform:rotate(-12deg)}
+#camCharacter .legs{position:absolute;top:78%;left:25%;width:50%;height:22%;display:flex;justify-content:space-between}
+#camCharacter .legs i{width:35%;height:100%;background:#222;border:3px solid #080808}
+#camCharacter.spring .head{background:linear-gradient(90deg,#25321a,#647b38,#27351c)}
+#camCharacter.spring .eyes i{background:#ffcf37;box-shadow:0 0 18px #ffcf37}
+#camCharacter.spring .body{background:linear-gradient(90deg,#1b2415,#526b2b,#1b2415)}
+#camCharacter.blob .head{background:linear-gradient(90deg,#292929,#777,#292929)}
+#camCharacter.blob .body{background:linear-gradient(90deg,#222,#666,#222)}
+#static{position:absolute;inset:0;z-index:5;pointer-events:none;opacity:.19;background:repeating-linear-gradient(transparent 0px,transparent 3px,#fff 4px,transparent 5px);animation:staticMove .12s infinite}
+#camNoise{position:absolute;inset:0;z-index:6;pointer-events:none;background:radial-gradient(ellipse,transparent 45%,rgba(0,0,0,.65))}
+@keyframes staticMove{50%{opacity:.34}}
+#camButtons{position:absolute;bottom:5px;left:4px;right:4px;display:flex;justify-content:center;gap:4px;flex-wrap:wrap;z-index:8}
+#camButtons button{padding:8px 10px;font-size:12px}
+#camButtons button.selected{background:#777;border-color:white;color:#000}
+#menu,#gameover,#win{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(#292929,#000 75%);text-align:center;padding:20px}
+h1{font-size:clamp(28px,7vw,58px);text-shadow:4px 4px #700}
+#menu p{color:#aaa}
+#gameover,#win{display:none}
+#gameover h1{color:#c00}#win h1{color:#ddd}
+#scare{position:absolute;inset:0;z-index:30;background:#000;display:none}
+#scare canvas{width:100%;height:100%}
+#scareText{position:absolute;bottom:12%;width:100%;text-align:center;color:red;font-size:clamp(25px,7vw,55px);font-weight:bold;text-shadow:0 0 20px red}
+#modelStatus{font-size:12px;color:#aaa;max-width:90%;overflow-wrap:anywhere}
+@media(max-width:500px){#cameraPanel{inset:3% 2% 8%}#camButtons button{padding:8px 7px;font-size:10px}}
+</style>
+</head>
+<body>
+<div id="game">
+<canvas id="three"></canvas>
+<div id="top"><span>NIGHT 1</span><span id="clock">12 AM</span></div>
+<button id="soundButton" onclick="toggleSound()">SOUND: ON</button>
+<div id="leftLight" class="light"></div><div id="rightLight" class="light"></div>
+<div id="leftDoor" class="door"></div><div id="rightDoor" class="door"></div>
+<div id="power">POWER: <span id="powerNumber">100</span>%<div id="powerBar"><div id="powerFill"></div></div><div id="usage">USAGE: ▮</div></div>
+<div id="controls">
+<button onclick="toggleDoor('left')">LEFT DOOR</button>
+<button onclick="toggleLight('left')">LEFT LIGHT</button>
+<button onclick="openCameras()">CAMERAS</button>
+<button onclick="toggleLight('right')">RIGHT LIGHT</button>
+<button onclick="toggleDoor('right')">RIGHT DOOR</button>
+</div>
+<div id="cameraPanel">
+<div id="camScene"><div id="camRoom">
+<div class="cam-wall"></div><div class="cam-ceiling"></div><div class="cam-floor"></div><div class="cam-light"></div><div class="cam-doorway"></div><div class="cam-poster"></div><div class="cam-shelf"></div><div class="cam-box left"></div><div class="cam-box right"></div><div class="cam-table"></div><div class="cam-pipes"></div><div class="cam-room-name" id="camRoomName">MAIN STAGE</div>
+</div>
+<div id="camCharacter"><div class="head"></div><div class="eyes"><i></i><i></i></div><div class="body"></div><div class="arm left"></div><div class="arm right"></div><div class="legs"><i></i><i></i></div></div>
+<div id="camLabel">CAM 01 - MAIN STAGE</div><div id="static"></div><div id="camNoise"></div>
+</div>
+<div id="camButtons">
+<button onclick="selectCam(0)">CAM 01</button><button onclick="selectCam(1)">CAM 02</button><button onclick="selectCam(2)">CAM 03</button><button onclick="selectCam(3)">CAM 04</button><button onclick="selectCam(4)">CAM 05</button><button onclick="closeCameras()">CLOSE</button>
+</div>
+</div>
+<div id="menu">
+<h1>FIVE NIGHTS AT<br>CODEMASTER'S PIZZA</h1>
+<p>Survive until 6 AM.</p><p>Watch the corridors. Save your power.</p>
+<p id="modelStatus">LOADING SPRINGTRAP MODEL...</p>
+<button onclick="startGame()">START NIGHT</button>
+</div>
+<div id="gameover"><h1>GAME OVER</h1><p id="deathReason">YOU WERE FOUND.</p><button onclick="retryGame()">TRY AGAIN</button></div>
+<div id="win"><h1>6 AM</h1><p>YOU SURVIVED THE NIGHT!</p><button onclick="retryGame()">PLAY AGAIN</button></div>
+<div id="scare"><canvas id="scareCanvas"></canvas><div id="scareText"></div></div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+
+const canvas=document.getElementById('three');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x050505);
+scene.fog=new THREE.Fog(0x050505,9,27);
+const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,100);
+camera.position.set(0,2.5,9);camera.lookAt(0,1.5,-3);
+scene.add(new THREE.AmbientLight(0xffffff,.4));
+
+const ceilingLight=new THREE.PointLight(0xffe5bd,1.2,17);
+ceilingLight.position.set(0,4,2);scene.add(ceilingLight);
+const leftLamp=new THREE.PointLight(0xffe9aa,0,13);
+leftLamp.position.set(-4,2.5,0);scene.add(leftLamp);
+const rightLamp=new THREE.PointLight(0xffe9aa,0,13);
+rightLamp.position.set(4,2.5,0);scene.add(rightLamp);
+
+function mat(color,metalness=.4,roughness=.65){return new THREE.MeshStandardMaterial({color,metalness,roughness})}
+function block(x,y,z,w,h,d,color){
+ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));
+ m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m;
+}
+
+// ОФІС
+block(0,-.2,1,12,.4,11,0x252525);
+block(0,4.1,1,12,.3,11,0x171717);
+block(0,2,-4.5,12,4,.3,0x303030);
+block(-6,2,1,.3,4,11,0x242424);
+block(6,2,1,.3,4,11,0x242424);
+
+function corridor(side){
+ const x=side*4.4;
+ block(x,1.8,-5,3.2,3.6,.25,0x171717);
+ block(x,1.8,1.3,3.2,3.6,.25,0x171717);
+ block(x-side*1.65,1.8,-1.8,.25,3.6,6.5,0x202020);
+ block(x+side*1.65,1.8,-1.8,.25,3.6,6.5,0x202020);
+ block(x,0,-1.8,3.2,.15,6.5,0x111111);
+ block(x,3.6,-1.8,3.2,.15,6.5,0x151515);
+}
+corridor(-1);corridor(1);
+for(const x of [-5.7,-3.1,3.1,5.7])block(x,1.8,1.2,.25,3.7,.4,0x777777);
+block(-4.4,3.7,1.2,2.8,.25,.4,0x777777);
+block(4.4,3.7,1.2,2.8,.25,.4,0x777777);
+block(0,.65,4,5,.25,1.5,0x383838);
+block(0,.2,4,4.6,.7,1.2,0x171717);
+
+const left3D=new THREE.Mesh(new THREE.BoxGeometry(2.45,3.3,.22),mat(0x505050,.7));
+left3D.position.set(-4.4,-2,1.05);scene.add(left3D);
+const right3D=left3D.clone();right3D.position.set(4.4,-2,1.05);scene.add(right3D);
+
+// СТАРА МОДЕЛЬ BLOB
+function makeCharacter(options){
+ const root=new THREE.Group();
+ const bodyMat=mat(options.color,.72,.82);
+ const darkMat=mat(options.dark,.92,.5);
+ const metalMat=mat(0x777777,.95,.28);
+ const steelDark=mat(0x292d30,.95,.35);
+ const rustMat=mat(options.rust,.55,.9);
+ const rubberMat=mat(0x101010,.05,.9);
+ const eyeMat=new THREE.MeshBasicMaterial({color:options.eye});
+ const pupilMat=new THREE.MeshBasicMaterial({color:0x050505});
+ const toothMat=mat(0xd8d0b8,.15,.42);
+ const cableMat=mat(options.wire,.8,.45);
+
+ function box(parent,w,h,d,x,y,z,material){
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
+  mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;
+  parent.add(mesh);return mesh;
+ }
+ function sphere(parent,r,x,y,z,material){
+  const m=new THREE.Mesh(new THREE.SphereGeometry(r,24,16),material);
+  m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;
+ }
+ function cylinder(parent,r1,r2,h,x,y,z,material,segments=16){
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,segments),material);
+  m.position.set(x,y,z);m.castShadow=true;parent.add(m);return m;
+ }
+ function wire(parent,a,b,material=cableMat,r=.035){
+  const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(...a),new THREE.Vector3(...b)]);
+  const m=new THREE.Mesh(new THREE.TubeGeometry(curve,16,r,8,false),material);
+  parent.add(m);return m;
+ }
+ function bolt(parent,x,y,z,scale=1){
+  cylinder(parent,.055*scale,.055*scale,.035,x,y,z,metalMat,12);
+  cylinder(parent,.018*scale,.018*scale,.038,x,y,z+.021,steelDark,8);
+ }
+ function plate(parent,w,h,d,x,y,z,material,rot=0){
+  const p=box(parent,w,h,d,x,y,z,material);
+  p.rotation.z=rot;return p;
+ }
+
+ const legs=[];
+ for(const s of [-1,1]){
+  const leg=new THREE.Group();leg.position.set(s*.32,.72,0);root.add(leg);
+  sphere(leg,.24,0,.28,0,steelDark);
+  cylinder(leg,.14,.14,.22,0,.28,0,metalMat);
+  box(leg,.22,.55,.24,0,-.05,0,steelDark);
+  box(leg,.34,.32,.36,0,-.3,.02,bodyMat);
+  plate(leg,.28,.19,.04,0,-.3,.22,darkMat);
+  sphere(leg,.19,0,-.48,.02,steelDark);
+  cylinder(leg,.09,.09,.34,0,-.68,0,metalMat);
+  box(leg,.42,.16,.55,0,-.9,.16,darkMat);
+  box(leg,.48,.09,.6,0,-.98,.17,bodyMat);
+  for(let i=0;i<3;i++){
+   const toe=box(leg,.12,.1,.24,(i-1)*.14,-.96,.47,toothMat);
+   toe.rotation.x=-.1;
+  }
+  bolt(leg,0,-.3,.22,1.2);
+  wire(leg,[-.12,-.05,.14],[.12,-.45,.16],cableMat,.025);
+  legs.push(leg);
+ }
+
+ const torso=new THREE.Group();torso.position.y=1.55;root.add(torso);
+ box(torso,1.12,1.15,.58,0,0,0,steelDark);
+ box(torso,.82,.92,.16,0,.02,.32,bodyMat);
+ plate(torso,.78,.28,.1,0,.36,.42,darkMat);
+ plate(torso,.9,.22,.1,0,-.36,.4,bodyMat);
+ box(torso,.3,.65,.12,0,0,.47,darkMat);
+ sphere(torso,.16,0,.02,.57,metalMat);
+ sphere(torso,.07,0,.02,.68,eyeMat);
+ for(const s of [-1,1]){
+  sphere(torso,.29,s*.66,.39,0,steelDark);
+  sphere(torso,.2,s*.66,.39,.08,metalMat);
+  plate(torso,.32,.35,.12,s*.68,.38,.18,bodyMat,s*.2);
+  bolt(torso,s*.68,.39,.26,1.3);
+  cylinder(torso,.12,.12,.13,s*.5,-.36,.1,metalMat);
+ }
+ for(let i=0;i<4;i++)plate(torso,.68,.055,.08,0,-.22+i*.15,.45,metalMat);
+ for(let i=0;i<8;i++){
+  const s=i%2===0?-1:1;
+  bolt(torso,s*(.39+(i%3)*.06),-.35+Math.floor(i/2)*.2,.45,.75);
+ }
+ for(let i=0;i<5;i++){
+  const s=i%2===0?-1:1;
+  const scratch=box(torso,.035,.2,.018,s*(.2+(i%3)*.12),.1-(i%3)*.12,.49,rustMat);
+  scratch.rotation.z=s*.25;
+ }
+ wire(torso,[-.42,.42,.2],[-.5,-.35,.28],cableMat,.04);
+ wire(torso,[.42,.42,.2],[.5,-.35,.28],cableMat,.04);
+ wire(torso,[-.3,.15,.4],[.3,-.25,.4],rubberMat,.025);
+
+ const arms=[];
+ for(const s of [-1,1]){
+  const arm=new THREE.Group();arm.position.set(s*.72,.4,0);torso.add(arm);
+  sphere(arm,.24,0,0,0,steelDark);
+  cylinder(arm,.17,.17,.16,0,-.04,0,metalMat);
+  box(arm,.3,.55,.32,0,-.38,0,steelDark);
+  plate(arm,.35,.42,.1,0,-.38,.17,bodyMat,s*.08);
+  bolt(arm,0,-.38,.24,1.1);
+  sphere(arm,.19,0,-.72,0,metalMat);
+  cylinder(arm,.13,.13,.16,0,-.74,0,steelDark);
+  box(arm,.27,.36,.28,0,-.98,0,darkMat);
+  plate(arm,.29,.25,.08,0,-.98,.16,bodyMat);
+  box(arm,.34,.22,.3,0,-1.22,.05,steelDark);
+  for(let i=0;i<4;i++){
+   const x=(i-1.5)*.095;
+   const finger=new THREE.Group();finger.position.set(x,-1.3,.16);arm.add(finger);
+   cylinder(finger,.035,.035,.17,0,-.08,0,metalMat,10);
+   sphere(finger,.04,0,-.17,0,steelDark);
+   cylinder(finger,.028,.028,.14,0,-.24,.01,toothMat,10);
+  }
+  const thumb=box(arm,.09,.22,.1,s*.21,-1.26,.16,metalMat);
+  thumb.rotation.z=s*.55;
+  wire(arm,[-.12,-.12,.18],[.12,-.7,.18],cableMat,.025);
+  wire(arm,[.1,-.78,.14],[-.08,-1.2,.15],rustMat,.018);
+  arms.push(arm);
+ }
+
+ cylinder(root,.2,.2,.35,0,2.15,0,steelDark);
+ cylinder(root,.25,.25,.08,0,2.04,0,metalMat);
+ cylinder(root,.17,.17,.1,0,2.3,0,metalMat);
+ for(let i=0;i<3;i++)cylinder(root,.29,.29,.045,0,1.96+i*.13,0,metalMat);
+
+ const head=new THREE.Group();head.position.set(0,2.7,0);root.add(head);
+ const skull=box(head,.96,.85,.72,0,.13,0,bodyMat);skull.rotation.x=-.04;
+ box(head,.72,.4,.22,0,-.25,.34,darkMat);
+ for(const s of [-1,1]){
+  sphere(head,.2,s*.37,-.08,.36,bodyMat);
+  plate(head,.18,.28,.1,s*.38,-.08,.49,rustMat,s*.2);
+ }
+ if(options.muzzle){
+  sphere(head,.3,0,-.02,.48,bodyMat);
+  sphere(head,.12,0,.08,.72,darkMat);
+  sphere(head,.07,0,.1,.8,rubberMat);
+ }else{
+  box(head,.56,.28,.3,0,-.08,.48,bodyMat);
+  plate(head,.45,.12,.1,0,-.17,.64,darkMat);
+ }
+ const jaw=new THREE.Group();jaw.position.set(0,-.27,.37);head.add(jaw);
+ box(jaw,.72,.16,.38,0,-.1,.08,steelDark);
+ box(jaw,.58,.1,.16,0,-.02,.24,bodyMat);
+ for(let i=0;i<7;i++){
+  const tooth=box(jaw,.075,.13,.09,-.27+i*.09,-.015,.29,toothMat);
+  tooth.rotation.z=(i-3)*.04;
+ }
+ for(let i=0;i<6;i++)box(head,.075,.12,.09,-.225+i*.09,-.25,.62,toothMat);
+ for(const s of [-1,1]){
+  sphere(head,.22,s*.25,.24,.35,steelDark);
+  sphere(head,.17,s*.25,.24,.47,metalMat);
+  sphere(head,.12,s*.25,.24,.56,eyeMat);
+  sphere(head,.055,s*.25,.24,.67,pupilMat);
+  sphere(head,.025,s*.25-.025,.28,.69,toothMat);
+  const lid=box(head,.31,.055,.12,s*.25,.4,.53,bodyMat);lid.rotation.z=s*-.08;
+  const ear=box(head,.27,.48,.22,s*.56,.55,-.02,bodyMat);ear.rotation.z=s*-.18;
+  sphere(head,.1,s*.56,.3,.06,steelDark);
+  cylinder(head,.045,.045,.13,s*.56,.55,.03,metalMat);
+  bolt(head,s*.42,.12,.48,1);
+ }
+ cylinder(head,.035,.035,.28,0,.72,0,metalMat);
+ sphere(head,.07,0,.88,0,rustMat);
+ wire(head,[-.45,.3,-.1],[-.65,-.25,.05],cableMat,.04);
+ wire(head,[.45,.3,-.1],[.65,-.25,.05],cableMat,.035);
+ wire(head,[-.45,-.25,.2],[-.35,-.48,.3],rustMat,.025);
+ wire(head,[.45,-.25,.2],[.35,-.48,.3],rustMat,.025);
+ for(let i=0;i<7;i++){
+  const s=i%2===0?-1:1;
+  const mark=box(head,.025,.14,.015,s*(.32+(i%3)*.055),.08-(i%3)*.12,.55,rustMat);
+  mark.rotation.z=s*.35;
+ }
+ for(let i=0;i<4;i++)cylinder(torso,.045,.045,.08,-.35+i*.23,.48,.18,metalMat,10);
+ return {root,head,jaw,arms,legs,torso};
+}
+
+const blobModel=makeCharacter({color:0x77736b,dark:0x292724,rust:0x8c3d1e,wire:0x171717,eye:0xff1717,muzzle:true});
+const springPlaceholder=makeCharacter({color:0x526d31,dark:0x202b19,rust:0x70421e,wire:0x17120c,eye:0xffcc33,muzzle:false});
+const blob=blobModel.root;
+const springModel={
+ root:springPlaceholder.root,
+ isGLB:false,
+ mixer:null,
+ animations:[]
+};
+scene.add(blob,springModel.root);
+blob.visible=false;
+springModel.root.visible=false;
+
+// ЗАВАНТАЖЕННЯ СПРАВЖНЬОЇ 3D-МОДЕЛІ SPRINGTRAP
+const modelStatus=document.getElementById('modelStatus');
+const gltfLoader=new GLTFLoader();
+
+gltfLoader.load(
+ './springtrap.glb',
+ function(gltf){
+  const oldRoot=springModel.root;
+  scene.remove(oldRoot);
+
+  const newRoot=new THREE.Group();
+  const model=gltf.scene;
+
+  model.traverse(function(object){
+   if(object.isMesh){
+    object.castShadow=true;
+    object.receiveShadow=true;
+    if(object.material){
+     object.material.side=THREE.DoubleSide;
+    }
+   }
+  });
+
+  model.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(model);
+  const size=new THREE.Vector3();
+  const center=new THREE.Vector3();
+  box.getSize(size);
+  box.getCenter(center);
+
+  const targetHeight=3.2;
+  const scale=targetHeight/Math.max(size.y,.001);
+  model.scale.setScalar(scale);
+
+  model.position.x=-center.x*scale;
+  model.position.y=-box.min.y*scale;
+  model.position.z=-center.z*scale;
+
+  model.rotation.y=Math.PI;
+
+  newRoot.add(model);
+  newRoot.visible=false;
+  scene.add(newRoot);
+
+  springModel.root=newRoot;
+  springModel.isGLB=true;
+
+  if(gltf.animations&&gltf.animations.length){
+   springModel.mixer=new THREE.AnimationMixer(model);
+   springModel.animations=gltf.animations;
+   gltf.animations.forEach(function(clip){
+    springModel.mixer.clipAction(clip).play();
+   });
+  }
+
+  modelStatus.textContent='SPRINGTRAP 3D: LOADED!';
+  modelStatus.style.color='#8f8';
+  console.log('SPRINGTRAP GLB loaded',gltf);
+ },
+ undefined,
+ function(error){
+  console.error('SPRINGTRAP GLB loading error:',error);
+  modelStatus.textContent='MODEL ERROR: CHECK springtrap.glb FILE';
+  modelStatus.style.color='#f66';
+ }
+);
+
+// СТАН ГРИ
+let running=false,gameEnded=false,power=100,hour=12,elapsed=0;
+let camOpen=false,currentCam=0;
+let leftClosed=false,rightClosed=false,leftLit=false,rightLit=false;
+let soundEnabled=true,audio=null,master=null,ambient=null;
+const rooms=['MAIN STAGE',"BLOB'S STORAGE","SPRINGTRAP'S ROOM",'DARK CORRIDOR','BACK ROOM'];
+const enemies={
+ BLOB:{position:0,model:blobModel,side:-1},
+ SPRINGTRAP:{position:0,model:springModel,side:1}
+};
+
+// ЗВУК
+function makeAudio(){
+ if(audio)return;
+ audio=new (window.AudioContext||window.webkitAudioContext)();
+ master=audio.createGain();master.gain.value=.32;master.connect(audio.destination);
+}
+function tone(freq,duration,type='sine',volume=.12){
+ if(!audio||!soundEnabled)return;
+ const osc=audio.createOscillator(),gain=audio.createGain();
+ osc.type=type;osc.frequency.value=freq;
+ gain.gain.setValueAtTime(volume,audio.currentTime);
+ gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);
+ osc.connect(gain);gain.connect(master);osc.start();osc.stop(audio.currentTime+duration);
+}
+function noise(duration,volume=.1){
+ if(!audio||!soundEnabled)return;
+ const length=Math.floor(audio.sampleRate*duration);
+ const buffer=audio.createBuffer(1,length,audio.sampleRate);
+ const data=buffer.getChannelData(0);
+ for(let i=0;i<length;i++)data[i]=Math.random()*2-1;
+ const source=audio.createBufferSource(),gain=audio.createGain();
+ source.buffer=buffer;gain.gain.value=volume;
+ source.connect(gain);gain.connect(master);source.start();
+ gain.gain.setTargetAtTime(.001,audio.currentTime,duration/3);
+ source.stop(audio.currentTime+duration);
+}
+function startAmbient(){
+ if(!audio||!soundEnabled||ambient)return;
+ const osc=audio.createOscillator(),gain=audio.createGain();
+ osc.type='sawtooth';osc.frequency.value=43;gain.gain.value=.022;
+ osc.connect(gain);gain.connect(master);osc.start();ambient={osc,gain};
+}
+function footsteps(){tone(65,.2,'triangle',.18);setTimeout(()=>tone(48,.2,'triangle',.14),180)}
+function doorSound(){tone(75,.5,'sawtooth',.2);noise(.3,.1)}
+function cameraSound(){noise(.3,.1);tone(900,.08,'square',.03)}
+function scareSound(){noise(1.3,.32);tone(90,1.2,'sawtooth',.32);setTimeout(()=>tone(180,.8,'square',.2),100)}
+function winSound(){[523,659,784,1046].forEach((n,i)=>setTimeout(()=>tone(n,.5),i*220))}
+
+window.toggleSound=function(){
+ soundEnabled=!soundEnabled;
+ document.getElementById('soundButton').textContent='SOUND: '+(soundEnabled?'ON':'OFF');
+ if(master)master.gain.value=soundEnabled?.32:0;
+ if(soundEnabled&&running)startAmbient();
+};
+
+window.startGame=async function(){
+ makeAudio();if(audio.state==='suspended')await audio.resume();
+ running=true;document.getElementById('menu').style.display='none';
+ startAmbient();tone(440,.2);
+};
+
+window.retryGame=async function(){
+ makeAudio();if(audio.state==='suspended')await audio.resume();
+ running=true;gameEnded=false;power=100;hour=12;elapsed=0;
+ camOpen=false;currentCam=0;
+ leftClosed=false;rightClosed=false;leftLit=false;rightLit=false;
+ for(const name in enemies){
+  enemies[name].position=0;
+  enemies[name].model.root.position.set(0,0,0);
+  enemies[name].model.root.rotation.set(0,0,0);
+  enemies[name].model.root.visible=false;
+ }
+ left3D.position.y=-2;right3D.position.y=-2;
+ document.getElementById('leftDoor').style.display='none';
+ document.getElementById('rightDoor').style.display='none';
+ document.getElementById('leftLight').style.display='none';
+ document.getElementById('rightLight').style.display='none';
+ leftLamp.intensity=0;rightLamp.intensity=0;
+ document.getElementById('menu').style.display='none';
+ document.getElementById('gameover').style.display='none';
+ document.getElementById('win').style.display='none';
+ document.getElementById('scare').style.display='none';
+ document.getElementById('cameraPanel').style.display='none';
+ document.getElementById('controls').style.display='flex';
+ document.getElementById('power').style.display='block';
+ document.getElementById('top').style.display='flex';
+ document.getElementById('soundButton').style.display='block';
+ document.getElementById('clock').textContent='12 AM';
+ document.getElementById('powerNumber').textContent='100';
+ document.getElementById('powerFill').style.width='100%';
+ document.getElementById('powerFill').style.background='#4c4';
+ document.getElementById('usage').textContent='USAGE: ▮';
+ document.getElementById('soundButton').textContent='SOUND: '+(soundEnabled?'ON':'OFF');
+ if(master)master.gain.value=soundEnabled?.32:0;
+ last=performance.now();startAmbient();tone(440,.2);
+};
+
+// ДВЕРІ ТА СВІТЛО
+window.toggleDoor=function(side){
+ if(!running||camOpen)return;
+ if(side==='left'){
+  leftClosed=!leftClosed;
+  document.getElementById('leftDoor').style.display=leftClosed?'block':'none';
+ }else{
+  rightClosed=!rightClosed;
+  document.getElementById('rightDoor').style.display=rightClosed?'block':'none';
+ }
+ doorSound();
+};
+window.toggleLight=function(side){
+ if(!running||camOpen)return;
+ if(side==='left'){
+  leftLit=!leftLit;
+  document.getElementById('leftLight').style.display=leftLit?'block':'none';
+  leftLamp.intensity=leftLit?3.2:0;
+ }else{
+  rightLit=!rightLit;
+  document.getElementById('rightLight').style.display=rightLit?'block':'none';
+  rightLamp.intensity=rightLit?3.2:0;
+ }
+ tone(250,.08,'square',.05);
+};
+
+// КАМЕРИ
+window.openCameras=function(){
+ if(!running||gameEnded)return;
+ camOpen=true;
+ document.getElementById('cameraPanel').style.display='block';
+ cameraSound();updateCamera();
+};
+window.closeCameras=function(){
+ camOpen=false;
+ document.getElementById('cameraPanel').style.display='none';
+ cameraSound();
+};
+window.selectCam=function(n){
+ if(n<0||n>4)return;
+ currentCam=n;cameraSound();updateCamera();
+};
+
+function updateCamera(){
+ const label=document.getElementById('camLabel');
+ const roomName=document.getElementById('camRoomName');
+ label.textContent='CAM 0'+(currentCam+1)+' - '+rooms[currentCam];
+ roomName.textContent=rooms[currentCam];
+ const room=document.getElementById('camRoom');
+ room.className='';
+ const styles=['stage','storage','springroom','corridor','backroom'];
+ room.classList.add(styles[currentCam]);
+ const doorway=document.querySelector('.cam-doorway');
+ const poster=document.querySelector('.cam-poster');
+ const shelf=document.querySelector('.cam-shelf');
+ const table=document.querySelector('.cam-table');
+ const pipes=document.querySelector('.cam-pipes');
+ const boxes=document.querySelectorAll('.cam-box');
+ if(currentCam===0){
+  doorway.style.display='none';poster.style.display='block';shelf.style.display='block';table.style.display='block';pipes.style.display='none';boxes[0].style.display='block';boxes[1].style.display='block';
+ }else if(currentCam===1){
+  doorway.style.display='block';poster.style.display='none';shelf.style.display='block';table.style.display='none';pipes.style.display='block';boxes[0].style.display='block';boxes[1].style.display='block';
+ }else if(currentCam===2){
+  doorway.style.display='block';poster.style.display='none';shelf.style.display='none';table.style.display='none';pipes.style.display='block';boxes[0].style.display='none';boxes[1].style.display='block';
+ }else if(currentCam===3){
+  doorway.style.display='block';poster.style.display='none';shelf.style.display='none';table.style.display='none';pipes.style.display='block';boxes[0].style.display='none';boxes[1].style.display='none';
+ }else{
+  doorway.style.display='none';poster.style.display='block';shelf.style.display='block';table.style.display='none';pipes.style.display='block';boxes[0].style.display='block';boxes[1].style.display='none';
+ }
+ let found='';
+ for(const name in enemies){if(enemies[name].position===currentCam)found=name}
+ const char=document.getElementById('camCharacter');
+ char.style.display=found?'block':'none';
+ char.className=found?found.toLowerCase():'';
+ document.querySelectorAll('#camButtons button').forEach((b,i)=>{b.classList.toggle('selected',i===currentCam)});
+ document.getElementById('static').style.opacity=found?'.42':'.19';
+}
+
+// ЕНЕРГІЯ
+function updatePower(){
+ document.getElementById('powerNumber').textContent=Math.max(0,Math.floor(power));
+ document.getElementById('powerFill').style.width=Math.max(0,power)+'%';
+ document.getElementById('powerFill').style.background=power<25?'#d22':power<50?'#db3':'#4c4';
+ const usage=1+(leftClosed?1:0)+(rightClosed?1:0)+(leftLit?1:0)+(rightLit?1:0)+(camOpen?1:0);
+ document.getElementById('usage').textContent='USAGE: '+'▮'.repeat(usage);
+}
+
+// РУХ АНІМАТРОНІКІВ
+function moveEnemies(){
+ for(const name in enemies){
+  const e=enemies[name];
+  if(Math.random()<.48)e.position=Math.min(e.position+1,4);
+  if(e.position>=3)footsteps();
+  if(e.position===4){
+   const closed=e.side===-1?leftClosed:rightClosed;
+   if(closed){e.position=2;doorSound()}
+   else{endGame(name);return}
+  }
+ }
+ if(camOpen)updateCamera();
+}
+
+// АНІМАЦІЯ МОДЕЛЕЙ
+function updateCharacters(t){
+ for(const name in enemies){
+  const e=enemies[name],m=e.model,group=m.root,side=e.side;
+  if(e.position<3){group.visible=false;continue}
+  group.visible=true;
+  const targetZ=e.position===3?-4.2:-.1;
+  group.position.x+=(side*4.4-group.position.x)*.055;
+  group.position.z+=(targetZ-group.position.z)*.055;
+  group.rotation.y=side===-1?Math.PI/2:-Math.PI/2;
+
+  if(m.isGLB){
+   group.position.y=Math.sin(t*1.8)*.035;
+   continue;
+  }
+
+  m.head.rotation.y=Math.sin(t*1.15+(side*2))*.22;
+  m.head.rotation.x=Math.sin(t*1.6)*.065;
+  m.jaw.rotation.x=Math.max(0,Math.sin(t*2.1))*.2;
+  m.arms[0].rotation.x=Math.sin(t*1.8)*.16;
+  m.arms[1].rotation.x=-Math.sin(t*1.8)*.16;
+  m.arms[0].rotation.z=Math.sin(t*1.3)*.07;
+  m.arms[1].rotation.z=-Math.sin(t*1.3)*.07;
+  m.legs[0].rotation.x=Math.sin(t*1.5)*.1;
+  m.legs[1].rotation.x=-Math.sin(t*1.5)*.1;
+  group.position.y=Math.sin(t*1.8)*.035;
+ }
+}
+function updateDoors(){
+ const leftTarget=leftClosed?1.7:-2,rightTarget=rightClosed?1.7:-2;
+ left3D.position.y+=(leftTarget-left3D.position.y)*.18;
+ right3D.position.y+=(rightTarget-right3D.position.y)*.18;
+}
+
+function endGame(reason){
+ if(gameEnded)return;
+ gameEnded=true;running=false;
+ document.getElementById('cameraPanel').style.display='none';
+ document.getElementById('controls').style.display='none';
+ document.getElementById('power').style.display='none';
+ document.getElementById('top').style.display='none';
+ document.getElementById('soundButton').style.display='none';
+ document.getElementById('scare').style.display='block';
+ document.getElementById('scareText').textContent=reason==='BLOB'?'BLOB FOUND YOU':reason==='POWER'?'POWER OUT':'SPRINGTRAP FOUND YOU';
+ scareSound();scareAnimation();
+ setTimeout(()=>{
+  if(!gameEnded)return;
+  document.getElementById('scare').style.display='none';
+  document.getElementById('deathReason').textContent=reason==='POWER'?'THE POWER HAS RUN OUT.':reason+' FOUND YOU.';
+  document.getElementById('gameover').style.display='flex';
+ },2100);
+}
+function scareAnimation(){
+ const c=document.getElementById('scareCanvas'),ctx=c.getContext('2d');
+ c.width=innerWidth;c.height=innerHeight;let frame=0;
+ function draw(){
+  if(frame>30||!gameEnded)return;
+  frame++;
+  ctx.fillStyle=frame%2?'#080000':'#350000';ctx.fillRect(0,0,c.width,c.height);
+  ctx.fillStyle='#aaa';ctx.font='bold '+(80+frame*9)+'px Arial';
+  ctx.textAlign='center';ctx.fillText('◉',c.width/2,c.height/2);
+  ctx.fillStyle='red';
+  ctx.fillRect(c.width/2-80,c.height/2+30,35,12);
+  ctx.fillRect(c.width/2+45,c.height/2+30,35,12);
+  c.style.transform=`translate(${Math.random()*20-10}px,${Math.random()*20-10}px)`;
+  setTimeout(draw,55);
+ }
+ draw();
+}
+function winGame(){
+ running=false;gameEnded=true;winSound();
+ document.getElementById('win').style.display='flex';
+}
+function updateClock(){
+ elapsed++;
+ if(elapsed%30===0){
+  hour++;if(hour>12)hour=1;
+  document.getElementById('clock').textContent=hour+' AM';
+  if(hour===6)winGame();
+ }
+}
+
+// ГОЛОВНИЙ ЦИКЛ
+function animate(){
+ requestAnimationFrame(animate);
+ const t=performance.now()*.001;
+ updateCharacters(t);updateDoors();
+
+ if(springModel.mixer)springModel.mixer.update(.016);
+
+ ceilingLight.intensity=1.1+Math.sin(t*4)*.08;
+ camera.position.x+=(0-camera.position.x)*.05;
+ camera.position.y+=(2.5-camera.position.y)*.05;
+ camera.position.z+=(9-camera.position.z)*.05;
+ camera.lookAt(0,1.5,-3);
+ renderer.render(scene,camera);
+}
+animate();
+
+let last=0;
+function gameLoop(now){
+ requestAnimationFrame(gameLoop);
+ if(!running||gameEnded)return;
+ if(now-last<1000)return;
+ last=now;
+ let drain=.12;
+ if(leftClosed)drain+=.18;
+ if(rightClosed)drain+=.18;
+ if(leftLit)drain+=.12;
+ if(rightLit)drain+=.12;
+ if(camOpen)drain+=.12;
+ power-=drain;updatePower();
+ if(power<=0){endGame('POWER');return}
+ if(Math.random()<.42)moveEnemies();
+ updateClock();
+}
+requestAnimationFrame(gameLoop);
+
+window.addEventListener('resize',()=>{
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
